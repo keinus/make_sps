@@ -1,0 +1,17 @@
+[project]
+name = "make-sps"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "coverage>=7.8.2",
+    "fastapi>=0.115.12",
+    "flake8>=7.2.0",
+    "pillow>=11.2.1",
+    "pydantic>=2.11.5",
+    "pyflakes>=3.3.2",
+    "pylint>=3.3.7",
+    "python-multipart>=0.0.20",
+    "uvicorn>=0.34.2",
+]

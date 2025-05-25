@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>File Upload Form</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f4f7fc;
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+      }
+      .form-container {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        max-width: 500px;
+        width: 100%;
+      }
+      h1 {
+        text-align: center;
+        color: #333;
+        margin-bottom: 20px;
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: #555;
+      }
+      input[type="text"],
+      input[type="file"] {
+        width: calc(100% - 20px);
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .radio-group {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .radio-group label {
+        font-weight: normal;
+        color: #555;
+        margin-bottom: 0;
+      }
+      button {
+        width: 100%;
+        padding: 12px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.3s ease;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+      .success-message,
+      .error-message {
+        display: none;
+        text-align: center;
+        margin-top: 20px;
+        font-size: 14px;
+      }
+      .success-message {
+        color: green;
+      }
+      .error-message {
+        color: red;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      .fade-in {
+        animation: fadeIn 0.5s ease-in-out;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="form-container">
+      <h1>Upload File</h1>
+      <form id="uploadForm">
+        <div class="form-group">
+          <label for="file">Select file:</label>
+          <input type="file" id="file" name="file" />
+        </div>
+
+        <div class="form-group">
+          <label for="device">장비식별자:</label>
+          <input type="text" id="device" name="device" />
+        </div>
+
+        <div class="form-group">
+          <label for="csu">CSU:</label>
+          <input type="text" id="csu" name="csu" />
+        </div>
+
+        <div class="form-group">
+          <label for="version">Version:</label>
+          <input type="text" id="version" name="version" />
+        </div>
+
+        <div class="form-group">
+          <label for="partnumber">도면번호(SW부품번호):</label>
+          <input type="text" id="partnumber" name="partnumber" />
+        </div>
+
+        <div class="form-group radio-group">
+          <label>Checksum Type:</label>
+          <div>
+            <input
+              type="radio"
+              id="checksum-md5"
+              name="checksum_type"
+              value="MD5"
+              checked
+            />
+            <label for="checksum-md5">MD5</label>
+          </div>
+          <div>
+            <input
+              type="radio"
+              id="checksum-sha256"
+              name="checksum_type"
+              value="SHA256"
+            />
+            <label for="checksum-sha256">SHA256</label>
+          </div>
+        </div>
+
+        <button type="submit">Upload</button>
+      </form>
+
+      <div class="success-message fade-in" id="successMessage">
+        File uploaded successfully!
+      </div>
+      <div class="error-message fade-in" id="errorMessage"></div>
+    </div>
+
+    <script>
+      document
+        .getElementById("uploadForm")
+        .addEventListener("submit", async function (event) {
+          event.preventDefault();
+
+          // Show loading spinner (not implemented in this example)
+          const fileInput = document.getElementById("file");
+          const device = document.getElementById("device").value;
+          const csu = document.getElementById("csu").value;
+          const version = document.getElementById("version").value;
+          const partnumber = document.getElementById("partnumber").value;
+          const checksumType = document.querySelector(
+            'input[name="checksum_type"]:checked'
+          ).value;
+
+          if (!fileInput.files.length) {
+            alert("Please select a file to upload.");
+            return;
+          }
+
+          const dataToSend = {
+            device: device, // FastAPI 모델 필드명이 'device'라고 가정
+            csu: csu,       // FastAPI 모델 필드명이 'csu'라고 가정
+            version: version, // FastAPI 모델 필드명이 'version'이라고 가정
+            partnumber: partnumber, // FastAPI 모델 필드명이 'partnumber'라고 가정
+            checksum_type: checksumType, // FastAPI 모델 필드명이 'checksum_type'이라고 가정
+          };
+
+
+          const formData = new FormData();
+          formData.append("file", fileInput.files[0]);
+          for (const key in dataToSend) {
+            if (dataToSend.hasOwnProperty(key)) {
+              formData.append(key, dataToSend[key]);
+            }
+          }
+
+          try {
+            const response = await fetch("/uploadfile/", {
+              method: "POST",
+              body: formData,
+            });
+
+            document
+              .querySelectorAll(".fade-in")
+              .forEach((el) => (el.style.display = "none"));
+
+            if (response.ok) {
+              document.getElementById("successMessage").style.display = "block";
+              const result = await response.json();
+              console.log(result);
+            } else {
+              const errorText = await response.text();
+              document.getElementById(
+                "errorMessage"
+              ).textContent = `Failed to upload file. Error: ${errorText}`;
+              document.getElementById("errorMessage").style.display = "block";
+              console.error(errorText);
+            }
+          } catch (error) {
+            document.getElementById(
+              "errorMessage"
+            ).textContent = `Error: ${error.message}`;
+            document.getElementById("errorMessage").style.display = "block";
+            console.error("Error:", error);
+          }
+        });
+    </script>
+  </body>
+</html>
