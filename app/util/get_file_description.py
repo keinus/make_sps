@@ -16,9 +16,9 @@ def leading_multiline_comments(file_path: str) -> str:
         with open(file_path, 'r', encoding='utf-8') as f:
             lines = f.readlines()
     except FileNotFoundError:
-        return "오류: 파일을 찾을 수 없습니다."
-    except Exception as e:
-        return f"파일 읽기 오류: {e}"
+        return ""
+    except Exception:
+        return ""
 
     if not lines:
         return ""

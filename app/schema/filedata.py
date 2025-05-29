@@ -13,6 +13,7 @@ class FileType(str, Enum):
     PROJECT = "프로젝트 파일"
     SOURCE = "소스코드"
     IMAGE = "이미지 파일"
+    UNKNOWN = "기타 파일"
 
 
 class FileData(BaseModel):
@@ -24,6 +25,7 @@ class FileData(BaseModel):
     Type: FileType
 
     Index: int
+    FilePath: str
     Filename: str
     Version: str
     Size: int
@@ -34,3 +36,4 @@ class FileData(BaseModel):
     Loc: str          # 소스코드 만, 이미지일 경우 해상도
 
     Description: str  # 가능한 경우.
+

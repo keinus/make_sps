@@ -1,23 +1,22 @@
 """entrypoint"""
 import os
 import shutil
-from fastapi import FastAPI, File, UploadFile, Form
+from fastapi import FastAPI, File, UploadFile, Form, send_file
 from app.environments.env import DEFAULT_TEMP_DIR
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
 
 from app.schema.enums import CHECKSUM
 from app.util import extract_zip
 from app.parser import get_sps_data
 from app.schema.web_api import SpsRequest
-
+from app.util.make_sps_hwp import make
 
 api = FastAPI()
-
-# Serve static files from the "resources" directory
 api.mount("/static", StaticFiles(directory="resources"), name="static")
 
-@api.get("/upload")
+
+@api.get("/")
 async def get_upload_page():
     """HTML 파일 업로드 페이지 제공 함수
     업로드 페이지를 제공하는 API 엔드포인트입니다.
@@ -25,8 +24,9 @@ async def get_upload_page():
     Returns:
         HTML: 업로드 페이지
     """
-    with open("resources/gui.html", "r") as file:
+    with open("resources/gui.html", "r", encoding='UTF8') as file:
         return HTMLResponse(content=file.read(), status_code=200)
+
 
 @api.post("/uploadfile/")
 async def upload_file(
@@ -77,8 +77,10 @@ async def upload_file(
         )
 
         retval = get_sps_data(device_request)
-        shutil.rmtree(DEFAULT_TEMP_DIR)
-        print(f"'{file_location}' 디렉토리가 성공적으로 삭제되었습니다.")
 
-        return retval
-    return None
+        result_file = make(retval)
+
+        shutil.rmtree(DEFAULT_TEMP_DIR)
+        os.remove(file_location)
+        print(f"'{file_location}' 디렉토리가 성공적으로 삭제되었습니다.")
+        return FileResponse(path=result_file, media_type="application/octet-stream")
