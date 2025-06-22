@@ -11,9 +11,9 @@ from app.schema.constants import (EXECUTION_EXTENSIONS, PROJECT_EXTENSIONS,
                                   DATABSE_EXTENSIONS, IMAGE_EXTENSIONS)
 from app.schema.web_api import SpsRequest
 from app.util import get_md5_checksum, get_sha256_checksum
-from app.util.code__counter import count_code_lines
-from app.util.image_details import get_image_details
-from app.util.get_file_description import leading_multiline_comments
+from app.parser.code__counter import count_code_lines
+from app.parser.image_details import get_image_details
+from app.parser.get_file_description import leading_multiline_comments
 
 
 def _get_file_type(extension: str) -> FileType:

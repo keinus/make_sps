@@ -1,16 +1,16 @@
 """entrypoint"""
 import os
 import shutil
-from fastapi import FastAPI, File, UploadFile, Form
+from fastapi import FastAPI, File, HTTPException, UploadFile, Form
 from app.environments.env import DEFAULT_TEMP_DIR
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse
 
 from app.schema.enums import CHECKSUM
-from app.util import extract_zip
-from app.parser import get_sps_data
+from app.util import extract_zip, create_random_named_folder
+from app.parser.parser import get_sps_data
 from app.schema.web_api import SpsRequest
-from app.util.make_sps_hwp import make
+from app.hwp.make_sps_hwp import make
 
 api = FastAPI()
 api.mount("/static", StaticFiles(directory="resources"), name="static")
@@ -57,14 +57,23 @@ async def upload_file(
 
         os.makedirs(DEFAULT_TEMP_DIR, exist_ok=True)
         os.makedirs("uploads", exist_ok=True)
+        
+        try:
+            target = create_random_named_folder()
+        except OSError as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"{e}"
+            ) from e
+
 
         with open(file_location, "wb") as buffer:
             buffer.write(await file.read())
 
         if file.filename.endswith(".zip"):
-            extract_zip(file_location, DEFAULT_TEMP_DIR)
+            extract_zip(file_location, target)
         else:
-            target = f"{DEFAULT_TEMP_DIR}/{file.filename}"
+            target = f"{target}/{file.filename}"
             shutil.move(file_location, target)
 
         # Create SpsRequest from form data
@@ -78,9 +87,9 @@ async def upload_file(
 
         retval = get_sps_data(device_request)
 
-        result_file = make(retval)
+        result_filename: str = make(retval)
 
-        shutil.rmtree(DEFAULT_TEMP_DIR)
+        shutil.rmtree(target)
         os.remove(file_location)
         print(f"'{file_location}' 디렉토리가 성공적으로 삭제되었습니다.")
-        return FileResponse(path=result_file, media_type="application/octet-stream")
+        return FileResponse(path=result_filename, media_type="application/octet-stream")

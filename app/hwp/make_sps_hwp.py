@@ -2,7 +2,7 @@ from typing import List, Literal
 from app.schema.filedata import FileData, FileType
 from pyhwpx import Hwp
 
-from app.util.hwpaction import HwpAction
+from app.hwp.hwpaction import HwpAction
 
 
 exe_columns = [
