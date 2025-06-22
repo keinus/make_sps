@@ -5,6 +5,7 @@ from fastapi import FastAPI, File, HTTPException, UploadFile, Form
 from app.environments.env import DEFAULT_TEMP_DIR
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
 
 from app.schema.enums import CHECKSUM
 from app.util import extract_zip, create_random_named_folder
@@ -17,6 +18,8 @@ api.mount("/static", StaticFiles(directory="resources"), name="static")
 
 
 @api.get("/")
+
+@api.get("/")
 async def get_upload_page():
     """HTML 파일 업로드 페이지 제공 함수
     업로드 페이지를 제공하는 API 엔드포인트입니다.
@@ -25,7 +28,9 @@ async def get_upload_page():
         HTML: 업로드 페이지
     """
     with open("resources/gui.html", "r", encoding='UTF8') as file:
+    with open("resources/gui.html", "r", encoding='UTF8') as file:
         return HTMLResponse(content=file.read(), status_code=200)
+
 
 
 @api.post("/uploadfile/")

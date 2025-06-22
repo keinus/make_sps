@@ -133,12 +133,15 @@ def get_file_data(index: int,
     desc = leading_multiline_comments(file_path)
     desc = desc if not desc.startswith("파일 읽기 오류") else ""
     directory_name = os.path.dirname(file_path)
+    desc = desc if not desc.startswith("파일 읽기 오류") else ""
+    directory_name = os.path.dirname(file_path)
 
     return FileData(
         Device=device,
         Csu=csu,
         Index=index,
         Type=filetype,
+        FilePath=directory_name,
         FilePath=directory_name,
         Filename=filename,
         Version=version,
@@ -182,4 +185,5 @@ def get_sps_data(device_request: SpsRequest) -> List[FileData]:
                     print(f"'{filepath}' 파일 파싱 중 오류 발생: {e}")
     except Exception as e:
         print(f"디렉토리 처리 또는 삭제 중 오류 발생: {e}")
+    return retval
     return retval
