@@ -39,7 +39,7 @@ def _get_file_type(extension: str) -> FileType:
     elif extension in IMAGE_EXTENSIONS:
         return FileType.IMAGE
     else:
-        return FileType.CONF
+        return FileType.UNKNOWN
 
 
 def _get_checksum(file_path: str, checksum_type: CHECKSUM) -> str:
@@ -89,7 +89,8 @@ def get_file_data(index: int,
                   version: str,
                   partnumber: str,
                   checksum_type: CHECKSUM,
-                  file_path: str) -> FileData | None:
+                  file_path: str,
+                  root_path: str) -> FileData:
     """지정된 파일 경로에서 파일에 대한 데이터를 수집하고 처리하여 FileData 객체를 반환합니다.
     주어진 파일 경로가 유효한 파일인지 확인합니다. 파일 경로가 유효하지 않거나 파일이 존재하지 않으면 None을 반환합니다.
     파일의 이름, 확장자, 크기를 가져옵니다.
@@ -105,17 +106,18 @@ def get_file_data(index: int,
         partnumber (str): 파트 넘버.
         checksum_type (CHECKSUM): 체크섬 타입.
         file_path (str): 파일의 경로.
+        root_path (str): 루트 디렉토리 경로.
 
     Returns:
-        FileData | None: FileData 객체 또는 파일이 존재하지 않을 경우 None을 반환합니다.
+        FileData: FileData 객체 또는 파일이 존재하지 않을 경우 None을 반환합니다.
 
 
     """
     path: Path = Path(file_path)
     if not path.exists() or not path.is_file():
-        return None
+        raise ValueError("File not found.")
 
-    filename = path.stem
+    filename = path.name
     extension = path.suffix
     size = path.stat().st_size
 
@@ -132,16 +134,13 @@ def get_file_data(index: int,
 
     desc = leading_multiline_comments(file_path)
     desc = desc if not desc.startswith("파일 읽기 오류") else ""
-    directory_name = os.path.dirname(file_path)
-    desc = desc if not desc.startswith("파일 읽기 오류") else ""
-    directory_name = os.path.dirname(file_path)
+    directory_name = os.path.dirname(os.path.relpath(file_path, root_path))
 
     return FileData(
         Device=device,
         Csu=csu,
         Index=index,
         Type=filetype,
-        FilePath=directory_name,
         FilePath=directory_name,
         Filename=filename,
         Version=version,
@@ -154,7 +153,7 @@ def get_file_data(index: int,
     )
 
 
-def get_sps_data(device_request: SpsRequest) -> List[FileData]:
+def get_sps_data(device_request: SpsRequest, path: str, root_path: str) -> List[FileData]:
     """주어진 디바이스 요청에 대한 SPS 데이터를 가져오는 함수입니다.
     이 함수는 지정된 디렉토리(DEFAULT_TEMP_DIR)에서 파일을 탐색하고,
     각 파일에 대해 파일 데이터를 추출하여 반환합니다. 파일의 이름은 지정된 형식으로 포맷팅되고,
@@ -166,24 +165,54 @@ def get_sps_data(device_request: SpsRequest) -> List[FileData]:
         List[FileData] : 파일 데이터의 리스트를 반환합니다.
     """
     retval: List[FileData] = []
-    try:
-        for root, dirs, files in os.walk(DEFAULT_TEMP_DIR):
-            index: int = 1
-            prefix = f"E{index:03d}"  # 숫자를 3자리 형식으로 포맷팅
-            for filename in files:
-                filepath = os.path.join(root, filename)
-                try:
-                    data = get_file_data(index,
-                                         device_request.device,
-                                         device_request.csu,
-                                         device_request.version,
-                                         device_request.partnumber+prefix,
-                                         CHECKSUM.SHA256, filepath)
-                    retval.append(data)
-                    index += 1
-                except Exception as e:
-                    print(f"'{filepath}' 파일 파싱 중 오류 발생: {e}")
-    except Exception as e:
-        print(f"디렉토리 처리 또는 삭제 중 오류 발생: {e}")
+
+    path_obj = Path(path)
+    for file_path in path_obj.rglob('*'):
+        if file_path.is_file():
+            root = str(file_path.parent)
+            filename = file_path.name
+            filepath = str(file_path)
+            
+            index = 1
+            prefix = f"E{index:03d}"
+            
+            try:
+                data = get_file_data(index,
+                                    device_request.device,
+                                    device_request.csu,
+                                    device_request.version,
+                                    device_request.partnumber+prefix,
+                                    CHECKSUM.SHA256, filepath, root_path)
+                retval.append(data)
+                index += 1
+            except Exception as e:
+                print(f"'{filepath}' 파일 파싱 중 오류 발생: {e}")
     return retval
-    return retval
+
+
+
+
+
+
+
+
+    # try:
+    #     for root, dirs, files in os.walk(path):
+    #         index: int = 1
+    #         prefix = f"E{index:03d}"
+    #         for filename in files:
+    #             filepath = os.path.join(root, filename)
+    #             try:
+    #                 data = get_file_data(index,
+    #                                      device_request.device,
+    #                                      device_request.csu,
+    #                                      device_request.version,
+    #                                      device_request.partnumber+prefix,
+    #                                      CHECKSUM.SHA256, filepath, root_path)
+    #                 retval.append(data)
+    #                 index += 1
+    #             except Exception as e:
+    #                 print(f"'{filepath}' 파일 파싱 중 오류 발생: {e}")
+    # except Exception as e:
+    #     print(f"디렉토리 처리 또는 삭제 중 오류 발생: {e}")
+    # return retval

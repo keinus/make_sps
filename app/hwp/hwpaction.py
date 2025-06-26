@@ -138,10 +138,9 @@ class HwpAction:
             self.TableRightCell()
             self.hwp.Cancel()
 
-    def save(self) -> str:
-        file = self._random_filename()
-        self.hwp.save_as(file)
-        return file
+    def save(self, path: str) -> str:
+        self.hwp.save_as(path)
+        return path
 
     # dir(hwp.HParameterSet)
 

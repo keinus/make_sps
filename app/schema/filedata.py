@@ -14,7 +14,6 @@ class FileType(str, Enum):
     SOURCE = "소스코드"
     IMAGE = "이미지 파일"
     UNKNOWN = "기타 파일"
-    UNKNOWN = "기타 파일"
 
 
 class FileData(BaseModel):

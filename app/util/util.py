@@ -6,14 +6,13 @@ import shutil
 import uuid
 
 
-def create_template_zip(target_dir: str, zip_file_name: str):
+def create_template_zip(target_dir: str, zip_file_name: str) -> None:
+    os.makedirs(target_dir, exist_ok=True)
     current_dir = os.path.dirname("./")
     resource_template_src = os.path.join(current_dir, "resources", "template")
     
     target_template_dest = os.path.join(target_dir, "template")
     
-    # 1. './resource/template' 안의 파일과 폴더를 target_dir/template 에 복사
-    # 먼저 대상 디렉토리가 존재하면 삭제하여 깨끗한 상태로 시작합니다.
     if os.path.exists(target_template_dest):
         shutil.rmtree(target_template_dest)
         print(f"기존 폴더 삭제: {target_template_dest}")
@@ -25,7 +24,6 @@ def create_template_zip(target_dir: str, zip_file_name: str):
         print(f"템플릿 복사 중 오류 발생: {e}")
         return
 
-    # 2. 'section0.xml' 파일을 'target_dir/template/Contents' 폴더 아래에 복사
     section0_xml_src = os.path.join(target_dir, "section0.xml")
     section0_xml_dest_dir = os.path.join(target_template_dest, "Contents")
     section0_xml_dest_file = os.path.join(section0_xml_dest_dir, "section0.xml")
@@ -34,7 +32,6 @@ def create_template_zip(target_dir: str, zip_file_name: str):
         print(f"오류: 원본 파일 '{section0_xml_src}'을 찾을 수 없습니다.")
         return
 
-    # 대상 디렉토리가 없으면 생성합니다.
     os.makedirs(section0_xml_dest_dir, exist_ok=True)
 
     try:
@@ -43,13 +40,9 @@ def create_template_zip(target_dir: str, zip_file_name: str):
     except Exception as e:
         print(f"section0.xml 복사 중 오류 발생: {e}")
         return
+    
+    zip_output_path = os.path.join(target_dir, zip_file_name)
 
-    # 3. 'target_dir/template' 폴더를 압축하여 'download'로 복사
-    download_dir = "downloads"
-    os.makedirs(download_dir, exist_ok=True)
-    zip_output_path = os.path.join(download_dir, zip_file_name)
-
-    # 압축 파일을 생성합니다.
     try:
         with zipfile.ZipFile(zip_output_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
             for root, _, files in os.walk(target_template_dest):

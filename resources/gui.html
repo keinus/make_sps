@@ -180,12 +180,11 @@
 
           const dataToSend = {
             device: device, // FastAPI 모델 필드명이 'device'라고 가정
-            csu: csu,       // FastAPI 모델 필드명이 'csu'라고 가정
+            csu: csu, // FastAPI 모델 필드명이 'csu'라고 가정
             version: version, // FastAPI 모델 필드명이 'version'이라고 가정
             partnumber: partnumber, // FastAPI 모델 필드명이 'partnumber'라고 가정
             checksum_type: checksumType, // FastAPI 모델 필드명이 'checksum_type'이라고 가정
           };
-
 
           const formData = new FormData();
           formData.append("file", fileInput.files[0]);
@@ -196,7 +195,7 @@
           }
 
           try {
-            const response = await fetch("/uploadfile/", {
+            const response = await fetch("/uploadfile/hwpx", {
               method: "POST",
               body: formData,
             });
@@ -206,14 +205,44 @@
               .forEach((el) => (el.style.display = "none"));
 
             if (response.ok) {
+              // 파일 다운로드 처리
+              const blob = await response.blob();
+
+              // Content-Disposition 헤더에서 파일명 추출 (있다면)
+              const contentDisposition = response.headers.get(
+                "Content-Disposition"
+              );
+              let filename = "downloaded_file"; // 기본 파일명
+
+              if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(
+                  /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
+                );
+                if (filenameMatch && filenameMatch[1]) {
+                  filename = filenameMatch[1].replace(/['"]/g, "");
+                }
+              }
+
+              // 다운로드 링크 생성 및 클릭
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = filename;
+              document.body.appendChild(a);
+              a.click();
+
+              // 정리
+              document.body.removeChild(a);
+              window.URL.revokeObjectURL(url);
+
+              // 성공 메시지 표시
               document.getElementById("successMessage").style.display = "block";
-              const result = await response.json();
-              console.log(result);
+              console.log("File downloaded successfully");
             } else {
               const errorText = await response.text();
               document.getElementById(
                 "errorMessage"
-              ).textContent = `Failed to upload file. Error: ${errorText}`;
+              ).textContent = `Failed to download file. Error: ${errorText}`;
               document.getElementById("errorMessage").style.display = "block";
               console.error(errorText);
             }

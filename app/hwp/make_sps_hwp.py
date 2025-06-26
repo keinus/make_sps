@@ -1,9 +1,8 @@
 from typing import List, Literal
 from app.schema.filedata import FileData, FileType
+
 from pyhwpx import Hwp
-
 from app.hwp.hwpaction import HwpAction
-
 
 exe_columns = [
     "구 분", "순번", "파일명", "버전",
@@ -33,7 +32,7 @@ unknown_columns_width = [
 ]
 
 
-def make(file_data_list: List[FileData]) -> str:
+def make(file_data_list: List[FileData], path: str) -> str:
     device = file_data_list[0].Device
     csu = file_data_list[0].Csu
     
@@ -107,7 +106,7 @@ def make(file_data_list: List[FileData]) -> str:
         _insert_files(action, unknown_files, "Unknown")
         action.set_caption("기타 파일 목록")
 
-    return action.save()
+    return action.save(path)
 
 
 def _create_table(action: HwpAction,

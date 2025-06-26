@@ -64,7 +64,7 @@ class HWPXMLBuilder:
         # 단락 요소 생성
         p_elem = ET.Element('{http://www.hancom.co.kr/hwpml/2011/paragraph}p')
         p_elem.set('id', para_id)
-        p_elem.set('paraPrIDRef', '15' if level == 1 else '17')
+        p_elem.set('paraPrIDRef', str(13 + 2 * level))
         p_elem.set('styleIDRef', style)
         p_elem.set('pageBreak', '0')
         p_elem.set('columnBreak', '0')
@@ -149,7 +149,8 @@ class HWPXMLBuilder:
     
     def add_table(self, 
                   table_data: List[List[str]], 
-                  headers: List[str], 
+                  headers: List[str],
+                  sizes: List[int],
                   caption: str = "표",
                   table_num: int = 1,
                   caption_suffix: str = "목록") -> None:
@@ -172,18 +173,18 @@ class HWPXMLBuilder:
         # 테이블을 포함하는 단락 생성
         p_elem = ET.Element('{http://www.hancom.co.kr/hwpml/2011/paragraph}p')
         p_elem.set('id', '0')
-        p_elem.set('paraPrIDRef', '13')
-        p_elem.set('styleIDRef', '2')
+        p_elem.set('paraPrIDRef', '6')
+        p_elem.set('styleIDRef', '0')
         p_elem.set('pageBreak', '0')
         p_elem.set('columnBreak', '0')
         p_elem.set('merged', '0')
         
         # 실행 요소 생성
         run_elem = ET.Element('{http://www.hancom.co.kr/hwpml/2011/paragraph}run')
-        run_elem.set('charPrIDRef', '3')
+        run_elem.set('charPrIDRef', '36')
         
         # 테이블 요소 생성
-        tbl_elem = self._create_table_element(table_data, headers, caption, table_num, caption_suffix, table_id)
+        tbl_elem = self._create_table_element(table_data, headers, sizes, caption, table_num, caption_suffix, table_id)
         run_elem.append(tbl_elem)
         
         # 빈 텍스트 요소 추가
@@ -209,7 +210,10 @@ class HWPXMLBuilder:
         
         self.root.append(p_elem)
     
-    def _create_table_element(self, table_data, headers, caption, table_num, caption_suffix, table_id):
+    def _create_table_element(self, 
+                              table_data, headers: list[str], sizes: list[int], 
+                              caption: str, table_num: int, caption_suffix: str, 
+                              table_id: str):
         """테이블 요소 생성"""
         tbl = ET.Element('{http://www.hancom.co.kr/hwpml/2011/paragraph}tbl')
         tbl.set('id', table_id)
@@ -272,11 +276,11 @@ class HWPXMLBuilder:
         tbl.append(in_margin)
         
         # 헤더 행 생성
-        header_row = self._create_header_row(headers)
+        header_row = self._create_header_row(headers, sizes)
         tbl.append(header_row)
         
         # 데이터 행들 생성
-        self._add_table_data_rows(tbl, table_data, len(headers))
+        self._add_table_data_rows(tbl, table_data, sizes, len(headers))
         
         return tbl
     
@@ -363,7 +367,7 @@ class HWPXMLBuilder:
         
         return caption_elem
     
-    def _create_header_row(self, headers: list[str]):
+    def _create_header_row(self, headers: list[str], sizes: list[int]):
         """헤더 행 생성"""
         tr = ET.Element('{http://www.hancom.co.kr/hwpml/2011/paragraph}tr')
         ends_col: int = len(headers) - 1
@@ -446,8 +450,8 @@ class HWPXMLBuilder:
             
             # 셀 크기
             cell_sz = ET.Element('{http://www.hancom.co.kr/hwpml/2011/paragraph}cellSz')
-            cell_sz.set('width', '4481')
-            cell_sz.set('height', '1100')
+            cell_sz.set('width', str(sizes[i]))
+            cell_sz.set('height', '2275')
             tc.append(cell_sz)
             
             # 셀 여백
@@ -462,7 +466,7 @@ class HWPXMLBuilder:
         
         return tr
     
-    def _add_table_data_rows(self, tbl_elem, table_data: List[List[str]], col_count: int):
+    def _add_table_data_rows(self, tbl_elem, table_data: List[List[str]], sizes: list[int], col_count: int):
         """
         테이블에 데이터 행들을 추가
         
@@ -479,7 +483,7 @@ class HWPXMLBuilder:
                 tbl_elem.append(storage_row)
             else:
                 # 일반 데이터 행 추가
-                data_row = self._create_data_row(row_data, row_index, col_count, row_length == row_index)
+                data_row = self._create_data_row(row_data, sizes, row_index, col_count, row_length == row_index)
                 tbl_elem.append(data_row)
 
             row_index += 1
@@ -570,7 +574,7 @@ class HWPXMLBuilder:
         # 셀 크기
         cell_sz = ET.Element('{http://www.hancom.co.kr/hwpml/2011/paragraph}cellSz')
         cell_sz.set('width', '43534')
-        cell_sz.set('height', '1100')
+        cell_sz.set('height', '2275')
         tc.append(cell_sz)
         
         # 셀 여백
@@ -584,7 +588,7 @@ class HWPXMLBuilder:
         tr.append(tc)
         return tr
     
-    def _create_data_row(self, row_data: List[str], row_index: int, col_count: int, ends: bool = False):
+    def _create_data_row(self, row_data: List[str], sizes: list[int], row_index: int, col_count: int, ends: bool = False):
         """
         일반 데이터 행 생성
         
@@ -640,8 +644,12 @@ class HWPXMLBuilder:
             # 단락
             p = ET.Element('{http://www.hancom.co.kr/hwpml/2011/paragraph}p')
             p.set('id', '0')
-            p.set('paraPrIDRef', '4')
-            p.set('styleIDRef', '6')
+            if col_index == col_count - 1:
+                p.set('paraPrIDRef', '4')
+                p.set('styleIDRef', '6')
+            else:
+                p.set('paraPrIDRef', '6')
+                p.set('styleIDRef', '5')
             p.set('pageBreak', '0')
             p.set('columnBreak', '0')
             p.set('merged', '0')
@@ -656,7 +664,7 @@ class HWPXMLBuilder:
             run.append(t)
             
             # 라인 세그먼트 생성
-            lineseg_array = self._create_cell_lineseg(cell_data, col_index)
+            lineseg_array = self._create_cell_lineseg(cell_data, sizes[col_index], col_index)
             
             p.append(run)
             p.append(lineseg_array)
@@ -677,25 +685,25 @@ class HWPXMLBuilder:
             
             # 셀 크기 (컬럼에 따라 다른 크기)
             cell_sz = ET.Element('{http://www.hancom.co.kr/hwpml/2011/paragraph}cellSz')
-            widths = ['4481', '3231', '4365', '3254', '4229', '6936', '4456', '5436', '7146']
-            width = widths[col_index] if col_index < len(widths) else '4000'
+
+            width = str(sizes[col_index])
             cell_sz.set('width', width)
-            cell_sz.set('height', '282')
+            cell_sz.set('height', '2275')
             tc.append(cell_sz)
             
             # 셀 여백
             cell_margin = ET.Element('{http://www.hancom.co.kr/hwpml/2011/paragraph}cellMargin')
-            cell_margin.set('left', '510')
-            cell_margin.set('right', '510')
-            cell_margin.set('top', '141')
-            cell_margin.set('bottom', '141')
+            cell_margin.set('left', '0')
+            cell_margin.set('right', '0')
+            cell_margin.set('top', '0')
+            cell_margin.set('bottom', '0')
             tc.append(cell_margin)
             
             tr.append(tc)
         
         return tr
     
-    def _create_cell_lineseg(self, cell_data: str, col_index: int):
+    def _create_cell_lineseg(self, cell_data: str, size: int, col_index: int):
         """
         셀의 라인 세그먼트 생성 (긴 텍스트의 경우 여러 줄 처리)
         
@@ -705,50 +713,22 @@ class HWPXMLBuilder:
         """
         lineseg_array = ET.Element('{http://www.hancom.co.kr/hwpml/2011/paragraph}linesegarray')
         
-        # 체크섬이나 긴 텍스트의 경우 여러 줄로 분할
-        if col_index == 5 and len(str(cell_data)) > 20:  # 체크섬 컬럼
-            # 긴 체크섬을 여러 줄로 분할
-            text_len = len(str(cell_data))
-            chars_per_line = 14
-            lines = []
-            for i in range(0, text_len, chars_per_line):
-                lines.append(str(cell_data)[i:i+chars_per_line])
-            
-            for i, line in enumerate(lines):
-                lineseg = ET.Element('{http://www.hancom.co.kr/hwpml/2011/paragraph}lineseg')
-                lineseg.set('textpos', str(i * chars_per_line))
-                lineseg.set('vertpos', str(i * 1500))
-                lineseg.set('vertsize', '1000')
-                lineseg.set('textheight', '1000')
-                lineseg.set('baseline', '850')
-                lineseg.set('spacing', '500')
-                lineseg.set('horzpos', '0')
-                
-                # 컬럼별 크기 설정
-                sizes = ['3516', '2268', '3400', '2292', '3264', '5972', '3492', '4472', '6184']
-                horzsize = sizes[col_index] if col_index < len(sizes) else '3000'
-                lineseg.set('horzsize', horzsize)
-                lineseg.set('flags', '1441792' if i == 0 else '393216')
-                
-                lineseg_array.append(lineseg)
-        else:
-            # 일반적인 단일 라인 세그먼트
-            lineseg = ET.Element('{http://www.hancom.co.kr/hwpml/2011/paragraph}lineseg')
-            lineseg.set('textpos', '0')
-            lineseg.set('vertpos', '0')
-            lineseg.set('vertsize', '1000')
-            lineseg.set('textheight', '1000')
-            lineseg.set('baseline', '850')
-            lineseg.set('spacing', '500')
-            lineseg.set('horzpos', '0')
-            
-            # 컬럼별 크기 설정
-            sizes = ['3516', '2268', '3400', '2292', '3264', '5972', '3492', '4472', '6184']
-            horzsize = sizes[col_index] if col_index < len(sizes) else '3000'
-            lineseg.set('horzsize', horzsize)
-            lineseg.set('flags', '1441792')
-            
-            lineseg_array.append(lineseg)
+        # 일반적인 단일 라인 세그먼트
+        lineseg = ET.Element('{http://www.hancom.co.kr/hwpml/2011/paragraph}lineseg')
+        lineseg.set('textpos', '0')
+        lineseg.set('vertpos', '0')
+        lineseg.set('vertsize', '1000')
+        lineseg.set('textheight', '1000')
+        lineseg.set('baseline', '850')
+        lineseg.set('spacing', '500')
+        lineseg.set('horzpos', '0')
+        
+        # 컬럼별 크기 설정
+        horzsize = str(size - 992)
+        lineseg.set('horzsize', horzsize)
+        lineseg.set('flags', '1441792')
+        
+        lineseg_array.append(lineseg)
         
         return lineseg_array
     
