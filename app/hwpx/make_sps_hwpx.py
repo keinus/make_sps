@@ -1,6 +1,9 @@
-from typing import List
+from collections import defaultdict
+from typing import Dict, List
 from app.hwpx import HWPXMLBuilder
 from app.schema.filedata import FileData, FileType
+
+
 builder = HWPXMLBuilder("./resources/section0.xml")
 
 
@@ -9,15 +12,15 @@ def _get_exe_list(files: list[FileData]) -> List[List[str]]:
     index = 0
     path = ""
     for file in files:
-        if path != file.FilePath:
-            path = file.FilePath
+        if path != file.filePath:
+            path = file.filePath
             ret_list.append(['저장위치: ' + path])
 
         index += 1
         data = [
-            file.Type.value, str(index), file.Filename, file.Version, str(file.Size),
-            file.Checksum, file.Date, file.PartNumber + f"E{index:03d}",  # 숫자를 3자리 형식으로 포맷팅
-            file.Description
+            file.type.value, str(index), file.filename, file.version, str(file.size),
+            file.checksum, file.date, file.partNumber + f"E{index:03d}",  # 숫자를 3자리 형식으로 포맷팅
+            file.description
         ]
         ret_list.append(data)
     return ret_list
@@ -28,14 +31,14 @@ def _get_prj_list(files: list[FileData]) -> List[List[str]]:
     index = 0
     path = ""
     for file in files:
-        if path != file.FilePath:
-            path = file.FilePath
+        if path != file.filePath:
+            path = file.filePath
             ret_list.append(['저장위치: ' + path])
 
         index += 1
         data = [
-            str(index), file.Filename, file.Version, str(file.Size),
-            file.Checksum, file.Date, file.Loc, file.Description
+            str(index), file.filename, file.version, str(file.size),
+            file.checksum, file.date, file.loc, file.description
         ]
         ret_list.append(data)
     return ret_list
@@ -46,50 +49,55 @@ def _get_etc_list(files: list[FileData]) -> List[List[str]]:
     index = 0
     path = ""
     for file in files:
-        if path != file.FilePath:
-            path = file.FilePath
+        if path != file.filePath:
+            path = file.filePath
             ret_list.append(['저장위치: ' + path])
 
         index += 1
         data = [
-            str(index), file.Filename, file.Version, str(file.Size),
-            file.Checksum, file.Date, file.Description
+            str(index), file.filename, file.version, str(file.size),
+            file.checksum, file.date, file.description
         ]
         ret_list.append(data)
     return ret_list
 
+def group_by_csu(file_data_list: List[FileData]) -> Dict[str, List[FileData]]:
+    grouped = defaultdict(list)
+    for item in file_data_list:
+        grouped[item.csu].append(item)
+    return dict(grouped)
 
 def make(file_data_list: List[FileData], path: str) -> None:
-    device = file_data_list[0].Device
-    csu = file_data_list[0].Csu
+    device = file_data_list[0].device
     
     exe_files = sorted(
-        [file for file in file_data_list if file.Type in {
+        [file for file in file_data_list if file.type in {
             FileType.EXECUTION, FileType.CONF, FileType.DB
         }],
-        key=lambda x: x.FilePath
+        key=lambda x: x.filePath
     )
 
     prj_files = sorted(
-        [file for file in file_data_list if file.Type in {FileType.PROJECT}],
-        key=lambda x: x.FilePath
+        [file for file in file_data_list if file.type in {FileType.PROJECT}],
+        key=lambda x: x.filePath
     )
 
-    src_files = sorted(
-        [file for file in file_data_list if file.Type in {
-            FileType.SOURCE, FileType.IMAGE}],
-        key=lambda x: x.FilePath
-    )
+    grouped_data = defaultdict(list)
+    src_files = {}
+    for item in file_data_list:
+        grouped_data[item.csu].append(item)
+    
+    for csu in sorted(grouped_data.keys()):  # 키를 정렬하여 순회
+        src_files[csu] = _get_prj_list(grouped_data[csu])
 
-    unknown_files = sorted(
-        [file for file in file_data_list if file.Type in {FileType.UNKNOWN}],
-        key=lambda x: x.FilePath
+    etc_files = sorted(
+        [file for file in file_data_list if file.type in {FileType.ETC}],
+        key=lambda x: x.filePath
     )
 
     exe_list = _get_exe_list(exe_files)
     prj_list = _get_prj_list(prj_files)
-    src_list = _get_prj_list(src_files)
-    etc_list = _get_etc_list(unknown_files)
+    etc_list = _get_etc_list(etc_files)
 
     # 실행 파일 부분
     builder.add_para_number_text("실행파일", level=2)
@@ -109,14 +117,15 @@ def make(file_data_list: List[FileData], path: str) -> None:
     builder.add_table(prj_list, headers, sizes, "표", 1, "프로젝트 파일 목록")
     builder.add_empty_paragraph()
     builder.add_empty_paragraph()
-    
-    builder.add_para_number_text(csu, level=4)
-    headers = ["순번", "파일명", "버전", "크기 (Byte)", "첵섬", "생성일자", "라인수", "기능 설명"]
-    sizes = [2780, 4555, 2330, 3951, 7018, 3651, 3653, 15372]
-    builder.add_table(src_list, headers, sizes, "표", 1, "원본(소스) 파일 목록")
-    builder.add_empty_paragraph()
-    builder.add_empty_paragraph()
-    
+
+    for csu, src_list in src_files.items():
+        builder.add_para_number_text(csu, level=4)
+        headers = ["순번", "파일명", "버전", "크기 (Byte)", "첵섬", "생성일자", "라인수", "기능 설명"]
+        sizes = [2780, 4555, 2330, 3951, 7018, 3651, 3653, 15372]
+        builder.add_table(src_list, headers, sizes, "표", 1, "원본(소스) 파일 목록")
+        builder.add_empty_paragraph()
+        builder.add_empty_paragraph()
+
     builder.add_para_number_text("기타 파일", level=2)
     headers = ["순번", "파일명", "버전", "크기 (Byte)", "첵섬", "수정일", "비고"]
     sizes = [4669, 8326, 4669, 4669, 4952, 4669, 8622]

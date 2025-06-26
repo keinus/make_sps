@@ -9,7 +9,7 @@ from app.schema.filedata import FileType, FileData
 from app.schema.constants import (EXECUTION_EXTENSIONS, PROJECT_EXTENSIONS,
                                   SOURCE_EXTENSIONS, CONFIGURATION_EXTENSIONS,
                                   DATABSE_EXTENSIONS, IMAGE_EXTENSIONS)
-from app.schema.web_api import SpsRequest
+from app.schema.web_api import SpsProject, SpsRequest
 from app.util import get_md5_checksum, get_sha256_checksum
 from app.parser.code__counter import count_code_lines
 from app.parser.image_details import get_image_details
@@ -135,38 +135,30 @@ def get_file_data(index: int,
     desc = leading_multiline_comments(file_path)
     desc = desc if not desc.startswith("파일 읽기 오류") else ""
     directory_name = os.path.dirname(os.path.relpath(file_path, root_path))
+    if not directory_name.startswith("/"):
+        directory_name = "/" + directory_name
 
     return FileData(
-        Device=device,
-        Csu=csu,
-        Index=index,
-        Type=filetype,
-        FilePath=directory_name,
-        Filename=filename,
-        Version=version,
-        Size=size,
-        Checksum=checksum,
-        Date=date,
-        PartNumber=partnumber,
-        Loc=loc,
-        Description=desc
+        device=device,
+        csu=csu,
+        index=index,
+        type=filetype,
+        filePath=directory_name,
+        filename=filename,
+        version=version,
+        size=size,
+        checksum=checksum,
+        date=date,
+        partNumber=partnumber,
+        loc=loc,
+        description=desc
     )
 
 
-def get_sps_data(device_request: SpsRequest, path: str, root_path: str) -> List[FileData]:
-    """주어진 디바이스 요청에 대한 SPS 데이터를 가져오는 함수입니다.
-    이 함수는 지정된 디렉토리(DEFAULT_TEMP_DIR)에서 파일을 탐색하고,
-    각 파일에 대해 파일 데이터를 추출하여 반환합니다. 파일의 이름은 지정된 형식으로 포맷팅되고,
-    파일 데이터는 주어진 디바이스 요청 정보를 기반으로 생성됩니다.
-
-    Args:
-        device_request (SpsRequest) : 디바이스 요청 정보를 담고 있는 객체입니다.
-    Returns:
-        List[FileData] : 파일 데이터의 리스트를 반환합니다.
-    """
+def get_sps_data(device_request: SpsRequest, zip_extract_path: str) -> List[FileData]:
     retval: List[FileData] = []
 
-    path_obj = Path(path)
+    path_obj = Path(zip_extract_path)
     for file_path in path_obj.rglob('*'):
         if file_path.is_file():
             filepath = str(file_path)
@@ -180,9 +172,38 @@ def get_sps_data(device_request: SpsRequest, path: str, root_path: str) -> List[
                                     device_request.csu,
                                     device_request.version,
                                     device_request.partnumber+prefix,
-                                    CHECKSUM.SHA256, filepath, root_path)
+                                    CHECKSUM.SHA256, filepath, zip_extract_path)
                 retval.append(data)
                 index += 1
             except Exception as e:
                 print(f"'{filepath}' 파일 파싱 중 오류 발생: {e}")
+    return retval
+
+
+def get_sps_data_csc(device_request: SpsProject, zip_extract_path: str) -> List[FileData]:
+    retval: List[FileData] = []
+
+    for item in device_request.csu:
+        csu_name = item.csu
+        directory = item.dir
+
+        path_obj = Path(directory)
+        for file_path in path_obj.rglob('*'):
+            if file_path.is_file():
+                filepath = str(file_path)
+                
+                index = 1
+                prefix = f"E{index:03d}"
+                
+                try:
+                    data = get_file_data(index,
+                                        device_request.device,
+                                        csu_name,
+                                        device_request.version,
+                                        device_request.partnumber+prefix,
+                                        CHECKSUM.SHA256, filepath, zip_extract_path)
+                    retval.append(data)
+                    index += 1
+                except Exception as e:
+                    print(f"'{filepath}' 파일 파싱 중 오류 발생: {e}")
     return retval

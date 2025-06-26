@@ -19,10 +19,6 @@ def leading_multiline_comments(file_path: str) -> str:
         return ""
     except Exception:
         return ""
-        return ""
-    except Exception:
-        return ""
-
     if not lines:
         return ""
 

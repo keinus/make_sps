@@ -3,7 +3,7 @@ import os
 import shutil
 import anyio
 
-from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile, Form
+from fastapi import BackgroundTasks, Body, FastAPI, File, HTTPException, UploadFile, Form
 from app.environments.env import DEFAULT_TEMP_DIR
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse
@@ -12,7 +12,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from app.schema.enums import CHECKSUM
 from app.util import extract_zip, create_random_named_folder
 from app.parser import parser
-from app.schema.web_api import SpsRequest
+from app.schema.web_api import SpsProject, SpsRequest
 from app.hwpx import make_sps_hwpx
 from app.util.util import create_template_zip
 
@@ -72,7 +72,7 @@ async def upload_file_hwpx(
         checksum_type=checksum_type
     )
 
-    retval = parser.get_sps_data(device_request, directory_path, target)
+    retval = parser.get_sps_data(device_request, directory_path)
 
     make_sps_hwpx.make(retval, target)
     create_template_zip(target, save_as_location)
@@ -86,6 +86,52 @@ async def upload_file_hwpx(
                         headers={
                             "Content-Disposition": f"attachment; filename={save_as_location}"},
                         background=background_tasks)
+
+
+
+@api.post("/uploadfile/csc")
+async def upload_file_csc(
+    file: UploadFile = File(...),
+    device_request: SpsProject = Body(...)  
+) -> FileResponse:
+    if file.filename is None:
+        return FileResponse(path="", filename="default_filename")
+
+    os.makedirs(DEFAULT_TEMP_DIR, exist_ok=True)
+    os.makedirs("uploads", exist_ok=True)
+
+    try:
+        target = create_random_named_folder(DEFAULT_TEMP_DIR)
+    except OSError as e:
+        raise HTTPException(status_code=500, detail=f"{e}") from e
+
+    file_location = f"{target}/{file.filename}"
+    zip_extract_path = f"{target}/{os.path.splitext(file.filename)[0]}"
+    save_as_location = f"{os.path.splitext(file.filename)[0]}.hwpx"
+
+    async with await anyio.open_file(file_location, "wb") as buffer:
+        await buffer.write(await file.read())
+
+    if file.filename.endswith(".zip"):
+        extract_zip(file_location, zip_extract_path)
+
+    # Create SpsRequest from form data
+
+    retval = parser.get_sps_data_csc(device_request, zip_extract_path)
+
+    make_sps_hwpx.make(retval, target)
+    create_template_zip(target, save_as_location)
+
+    background_tasks = BackgroundTasks()
+    background_tasks.add_task(_delete_file, target)
+
+    return FileResponse(path=f"{target}/{save_as_location}",
+                        media_type="application/octet-stream",  # 또는 적절한 MIME 타입
+                        filename=f"{save_as_location}",
+                        headers={
+                            "Content-Disposition": f"attachment; filename={save_as_location}"},
+                        background=background_tasks)
+
 
 
 def _delete_file(path: str) -> None:

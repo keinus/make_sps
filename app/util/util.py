@@ -71,9 +71,9 @@ def extract_zip(zip_path: str, extract_to: str) -> None:
 
 
 def get_md5_checksum(file_path: str, chunk_size: int = 8192) -> str | None:
-    """MD5 체크섬 계산 함수
-    파일의 MD5 체크섬을 계산하여 16진수 문자열로 반환합니다.
-    대용량 파일을 효율적으로 처리하기 위해 파일을 청크 단위로 읽습니다.
+    """MD5 체크섬 계산 함수  
+    파일의 MD5 체크섬을 계산하여 16진수 문자열로 반환합니다.  
+    대용량 파일을 효율적으로 처리하기 위해 파일을 청크 단위로 읽습니다.  
 
     Args:
         file_path (str): MD5 체크섬을 계산할 파일의 경로.
@@ -132,7 +132,38 @@ def get_sha256_checksum(file_path: str, chunk_size: int = 8192) -> str | None:
         return None
 
 
-def create_random_named_folder(base_path: str="./temp"):
+def create_random_named_folder(base_path: str="./temp") -> str:
+    """
+    주어진 기준 경로에 UUID 기반의 랜덤한 폴더를 생성하고, 생성된 폴더의 전체 경로를 반환하는 함수
+
+    1. UUID 기반의 고유한 폴더명 생성
+       - uuid.uuid4()를 사용하여 128비트 고유 식별자 생성
+       - 문자열로 변환하여 폴더명으로 사용
+
+    2. 폴더 경로 생성
+       - os.path.join()을 통해 기준 경로와 랜덤 폴더명을 결합
+       - 예: base_path가 "./temp"일 경우 "/temp/uuid4()" 구조가 됨
+
+    3. 디렉토리 생성 시도
+       - os.makedirs()를 사용하여 디렉토리 생성
+       - exist_ok=True로 설정하여 기존 디렉토리가 있어도 예외 발생하지 않음
+
+    4. 성공 시
+       - 생성된 디렉토리의 전체 경로를 반환
+
+    5. 실패 시
+       - OSError 발생 시 원인을 포함한 상세한 에러 메시지 반환
+       - 예: "Failed to create directory '/temp/123e4567-e89b-12d3-a456-426614174000': [Errno 17] File exists: '/temp/123e4567-e89b-12d3-a456-426614174000'"
+
+    Parameters:
+        base_path (str): 생성할 랜덤 폴더의 기준 경로 (기본값: "./temp")
+
+    Returns:
+        str: 생성된 랜덤 폴더의 전체 경로
+
+    Raises:
+        OSError: 디렉토리 생성 실패 시 발생
+    """
     folder_name = str(uuid.uuid4())
     full_path = os.path.join(base_path, folder_name)
 
