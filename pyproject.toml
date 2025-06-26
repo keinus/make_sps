@@ -1,7 +1,7 @@
 [project]
 name = "make-sps"
-version = "0.1.0"
-description = "Add your description here"
+version = "1.0.0"
+description = "make sps file"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -11,7 +11,6 @@ dependencies = [
     "pillow>=11.2.1",
     "pydantic>=2.11.5",
     "pyflakes>=3.3.2",
-    "pyhwpx>=1.0.14",
     "pylint>=3.3.7",
     "python-multipart>=0.0.20",
     "requests>=2.32.3",

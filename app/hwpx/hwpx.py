@@ -64,7 +64,7 @@ class HWPXMLBuilder:
         # 단락 요소 생성
         p_elem = ET.Element('{http://www.hancom.co.kr/hwpml/2011/paragraph}p')
         p_elem.set('id', para_id)
-        p_elem.set('paraPrIDRef', str(13 + 2 * level))
+        p_elem.set('paraPrIDRef', str(11 + 2 * level))
         p_elem.set('styleIDRef', style)
         p_elem.set('pageBreak', '0')
         p_elem.set('columnBreak', '0')

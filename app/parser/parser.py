@@ -169,8 +169,6 @@ def get_sps_data(device_request: SpsRequest, path: str, root_path: str) -> List[
     path_obj = Path(path)
     for file_path in path_obj.rglob('*'):
         if file_path.is_file():
-            root = str(file_path.parent)
-            filename = file_path.name
             filepath = str(file_path)
             
             index = 1
@@ -188,31 +186,3 @@ def get_sps_data(device_request: SpsRequest, path: str, root_path: str) -> List[
             except Exception as e:
                 print(f"'{filepath}' 파일 파싱 중 오류 발생: {e}")
     return retval
-
-
-
-
-
-
-
-
-    # try:
-    #     for root, dirs, files in os.walk(path):
-    #         index: int = 1
-    #         prefix = f"E{index:03d}"
-    #         for filename in files:
-    #             filepath = os.path.join(root, filename)
-    #             try:
-    #                 data = get_file_data(index,
-    #                                      device_request.device,
-    #                                      device_request.csu,
-    #                                      device_request.version,
-    #                                      device_request.partnumber+prefix,
-    #                                      CHECKSUM.SHA256, filepath, root_path)
-    #                 retval.append(data)
-    #                 index += 1
-    #             except Exception as e:
-    #                 print(f"'{filepath}' 파일 파싱 중 오류 발생: {e}")
-    # except Exception as e:
-    #     print(f"디렉토리 처리 또는 삭제 중 오류 발생: {e}")
-    # return retval
