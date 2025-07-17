@@ -85,13 +85,14 @@ def make(file_data_list: List[FileData], path: str) -> None:
     grouped_data = defaultdict(list)
     src_files = {}
     for item in file_data_list:
-        grouped_data[item.csu].append(item)
+        if item.type in {FileType.SOURCE, FileType.IMAGE}:
+            grouped_data[item.csu].append(item)
     
     for csu in sorted(grouped_data.keys()):  # 키를 정렬하여 순회
         src_files[csu] = _get_prj_list(grouped_data[csu])
 
     etc_files = sorted(
-        [file for file in file_data_list if file.type in {FileType.ETC}],
+        [file for file in file_data_list if file.type in {FileType.ETC, FileType.UNKNOWN}],
         key=lambda x: x.filePath
     )
 
@@ -111,7 +112,7 @@ def make(file_data_list: List[FileData], path: str) -> None:
 
     builder.add_para_number_text("원시 파일", level=2)
     builder.add_para_number_text(device, level=3)
-    builder.add_text(f"  ○ {device}의 원시파일 총 수 : {len(src_files)+len(prj_files)}")
+    builder.add_text(f"  ○ {device}의 원시파일 총 수 : {sum(len(lst) for lst in src_files.values())+len(prj_files)}")
     headers = ["순번", "파일명", "버전", "크기 (Byte)", "첵섬", "생성일자", "라인수", "기능 설명"]
     sizes = [2780, 4555, 2330, 3951, 7018, 3651, 3653, 15372]
     builder.add_table(prj_list, headers, sizes, "표", 1, "프로젝트 파일 목록")

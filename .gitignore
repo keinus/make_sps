@@ -101,7 +101,8 @@ ENV/
 
 *.pyi
 .vscode/
-.temp/
+.temp/*
 .downloads/
 .vscode/
 .uploads/
+temp/

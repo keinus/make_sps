@@ -11,9 +11,10 @@ from app.schema.constants import (EXECUTION_EXTENSIONS, PROJECT_EXTENSIONS,
                                   DATABSE_EXTENSIONS, IMAGE_EXTENSIONS)
 from app.schema.web_api import SpsProject, SpsRequest
 from app.util import get_md5_checksum, get_sha256_checksum
-from app.parser.code__counter import count_code_lines
+from app.parser.code_counter import count_code_lines
 from app.parser.image_details import get_image_details
 from app.parser.get_file_description import leading_multiline_comments
+from app.util.ollama import descriptor
 
 
 def _get_file_type(extension: str) -> FileType:
@@ -126,14 +127,16 @@ def get_file_data(index: int,
     date = _get_date(filetype, path)
     checksum = _get_checksum(file_path, checksum_type)
     loc = ''
-    if filetype is FileType.SOURCE:
+    if filetype in [FileType.SOURCE, FileType.CONF, FileType.PROJECT]:
         loc = str(count_code_lines(file_path))
     elif filetype is FileType.IMAGE:
         (width, height), bits = get_image_details(file_path)
         loc = f'{width}x{height} {bits}bits'
 
-    desc = leading_multiline_comments(file_path)
-    desc = desc if not desc.startswith("파일 읽기 오류") else ""
+    desc = descriptor.describe_file_with_requests(file_path)
+    if desc == "":
+        desc = leading_multiline_comments(file_path)
+    
     directory_name = os.path.dirname(os.path.relpath(file_path, root_path))
     if not directory_name.startswith("/"):
         directory_name = "/" + directory_name
@@ -185,7 +188,7 @@ def get_sps_data_csc(device_request: SpsProject, zip_extract_path: str) -> List[
 
     for item in device_request.csu:
         csu_name = item.csu
-        directory = item.dir
+        directory = zip_extract_path + "/" + item.dir
 
         path_obj = Path(directory)
         for file_path in path_obj.rglob('*'):

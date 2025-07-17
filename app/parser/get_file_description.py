@@ -1,4 +1,4 @@
-'''파일 설명을 읽어오는 모듈'''
+'''파일 설명을 읽어오는 모듈 - 수정된 버전'''
 
 
 def leading_multiline_comments(file_path: str) -> str:
@@ -36,7 +36,11 @@ def leading_multiline_comments(file_path: str) -> str:
         comment_buffer = []
         # 첫 줄에서 주석이 시작하고 끝나는 경우
         if first_line_stripped.endswith(py_delimiter_used) and len(first_line_stripped) >= 2 * len(py_delimiter_used):
-            return first_line_stripped[len(py_delimiter_used):-len(py_delimiter_used)].strip()
+            # 같은 구분자가 두 번 나타나는지 확인
+            content = first_line_stripped[len(py_delimiter_used):]
+            end_pos = content.find(py_delimiter_used)
+            if end_pos != -1:
+                return content[:end_pos].strip()
 
         # 여러 줄에 걸친 경우
         # 첫 줄의 내용 (여는 구분자 이후)
@@ -44,7 +48,7 @@ def leading_multiline_comments(file_path: str) -> str:
 
         for i in range(1, len(lines)):
             line_content = lines[i].rstrip('\n')  # 줄 끝 개행 문자만 제거
-            closing_delimiter_pos = line_content.rfind(py_delimiter_used)
+            closing_delimiter_pos = line_content.find(py_delimiter_used)
             if closing_delimiter_pos != -1:
                 comment_buffer.append(line_content[:closing_delimiter_pos])
                 return "\n".join(comment_buffer).strip()
@@ -81,7 +85,9 @@ def leading_multiline_comments(file_path: str) -> str:
                 cleaned_c_style_lines = []
                 if lines_of_raw_block:
                     # 주석 블록의 첫 줄 내용
-                    cleaned_c_style_lines.append(lines_of_raw_block[0].strip())
+                    first_cleaned = lines_of_raw_block[0].strip()
+                    if first_cleaned:
+                        cleaned_c_style_lines.append(first_cleaned)
 
                     # 주석 블록의 중간 줄들 내용 정리
                     for k in range(1, len(lines_of_raw_block)):
@@ -115,20 +121,17 @@ def leading_multiline_comments(file_path: str) -> str:
             break
 
     if detected_marker:
-        extracted_single_line_comments = []
+        comment_lines = []
         for line_idx in range(len(lines)):
             current_line_lstripped = lines[line_idx].lstrip()
             if current_line_lstripped.startswith(detected_marker):
                 # 마커 이후의 내용 추출 및 양쪽 공백 제거
-                content_part = current_line_lstripped[len(
-                    detected_marker):].strip()
-                extracted_single_line_comments.append(content_part)
+                content = current_line_lstripped[len(detected_marker):].strip()
+                comment_lines.append(content)
             else:
                 # 연속된 주석이 끊긴 경우
                 break
 
-        if extracted_single_line_comments:
-            return "\n".join(extracted_single_line_comments)
-        # 만약 첫 줄이 마커로 시작했지만 내용이 없었다면 빈 문자열이 정상적으로 반환됨
+        return "\n".join(comment_lines).strip()
 
     return ""  # 어떤 주석 형식에도 해당하지 않는 경우
