@@ -18,7 +18,3 @@ dependencies = [
     "requests>=2.32.3",
     "uvicorn>=0.34.2",
 ]
-
-[ollama]
-model = "devstral:24b"
-apiBase = "http://localhost:11434"
