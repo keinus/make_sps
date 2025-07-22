@@ -1,6 +1,7 @@
 import requests
 import json
 import os
+import re
 from pathlib import Path
 import tomli as tomllib
 
@@ -12,17 +13,30 @@ class OllamaFileDescriptor:
         self.model = config.get("model")
         self.api_url = f"{self.base_url}/api/generate"
         self.is_connectable = self.check_server_connectivity()
+        self.size = self._parse_file_size(config.get('fileSize'))
+    
+    def _parse_file_size(self, s):
+        match = re.match(r'(\d+)(\w+)', s)
+        if not match:
+            raise ValueError(f"Invalid file size format: {s}")
+        number, unit = match.groups()
+        number = int(number)
+        unit = unit.upper()
+        
+        unit_map = {
+            'B': 1,
+            'KB': 1024,
+            'MB': 1024**2,
+            'GB': 1024**3,
+            'TB': 1024**4
+        }
+        
+        if unit not in unit_map:
+            raise ValueError(f"Unknown unit: {unit}")
+        
+        return number * unit_map[unit]
     
     def load_ollama_config(self, config_path: str = "ollama.toml") -> dict:
-        """
-        ollama.toml에서 ollama 설정을 읽어오는 함수
-        
-        Args:
-            config_path: ollama.toml 파일 경로
-            
-        Returns:
-            ollama 설정 딕셔너리
-        """
         config_file = Path(config_path)
         
         if not config_file.exists():
@@ -48,10 +62,9 @@ class OllamaFileDescriptor:
             return False
     
     def read_file(self, file_path):
-        """파일 내용을 읽어서 반환"""
         try:
             file_size = os.path.getsize(file_path)
-            if file_size > 300 * 1024:
+            if file_size > self.size:
                 raise ValueError("")
 
             with open(file_path, 'r', encoding='utf-8') as file:
@@ -77,18 +90,15 @@ class OllamaFileDescriptor:
     def describe_file_with_requests(self, file_path: str) -> str:
         if not self.is_connectable:
             return ""
-        """requests 라이브러리를 사용하여 파일 설명 요청"""
         file_content = self.read_file(file_path)
-        file_name = os.path.basename(file_path)
         
         prompt = f"""
-파일명: {file_name}
 파일 내용:
 '''
 {file_content}
 '''
 
-이 파일이 어떤 파일인지 한글 15자 이내로 설명만 작성. 개조식으로 작성.
+이 파일이 어떤 파일인지 한글 15자 이내로 설명만 작성. 개조식 문장으로 작성. 마지막에 "입니다" 빼.
 """
 
         payload = {

@@ -2,6 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" href="/static/favicon.ico"> <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Make SPS Project</title>
     <style>
       body {
@@ -105,47 +106,45 @@
           <input type="file" id="file" name="file" />
         </div>
 
-        <div class="form-group">
-          <label for="device">장비식별자:</label>
-          <input type="text" id="device" name="device" />
-        </div>
+        <div class="form-group instructions">
+          <h2>사용 방법</h2>
 
-        <div class="form-group">
-          <label for="csu">CSU:</label>
-          <input type="text" id="csu" name="csu" />
-        </div>
+          <h3>1. 폴더 구조 생성</h3>
+          <p>각 장비별로 별도의 폴더를 생성합니다. 각 폴더 내에는 CSU별로 소스코드 파일이 저장됩니다.</p>
+          <pre><code>.
+├── device-1
+│   ├── test1
+│   ├── test2
+│   ├── test3
+│   └── test4
+└── project.yaml</code></pre>
 
-        <div class="form-group">
-          <label for="version">Version:</label>
-          <input type="text" id="version" name="version" />
-        </div>
+          <h3>2. project.yaml 파일 작성</h3>
+          <p>각 장비별 폴더에 project.yaml 파일을 하나씩 작성합니다. 이 파일은 해당 장비의 프로젝트 정보를 포함하고 있습니다.</p>
+          <pre><code>project:
+  device: HDEV-001
+  version: 1.0.0
+  partnumber: Q2350911516
+  checksum_type: SHA256
+  csu:
+    - csu: Test1 (D-AAA-SFR-001)
+      dir: test1
+    - csu: Test2 (D-AAA-SFR-002)
+      dir: test2
+    - csu: Test3 (D-AAA-SFR-003)
+      dir: test3
+    - csu: Test4 (D-AAA-SFR-004)
+      dir: test4</code></pre>
 
-        <div class="form-group">
-          <label for="partnumber">도면번호(SW부품번호):</label>
-          <input type="text" id="partnumber" name="partnumber" />
-        </div>
+          <h3>3. 파일 압축</h3>
+          <ol>
+            <li>장비별 폴더를 ZIP 형식으로 압축합니다.</li>
+            <li>device-1 폴더를 선택합니다.</li>
+            <li>압축 프로그램을 사용하여 해당 폴더를 ZIP 파일로 압축합니다.</li>
+          </ol>
 
-        <div class="form-group radio-group">
-          <label> Checksum Type:</label>
-          <div>
-            <input
-              type="radio"
-              id="checksum-md5"
-              name="checksum_type"
-              value="MD5"
-              checked
-            />
-            <label for="checksum-md5">MD5</label>
-          </div>
-          <div>
-            <input
-              type="radio"
-              id="checksum-sha256"
-              name="checksum_type"
-              value="SHA256"
-            />
-            <label for="checksum-sha256">SHA256</label>
-          </div>
+          <h3>4. UI에서 파일 업로드</h3>
+          <p>압축한 ZIP 파일을 UI에서 업로드합니다.</p>
         </div>
 
         <button type="submit">Upload</button>
@@ -165,26 +164,13 @@
 
           // Show loading spinner (not implemented in this example)
           const fileInput = document.getElementById("file");
-          const device = document.getElementById("device").value;
-          const csu = document.getElementById("csu").value;
-          const version = document.getElementById("version").value;
-          const partnumber = document.getElementById("partnumber").value;
-          const checksumType = document.querySelector(
-            'input[name="checksum_type"]:checked'
-          ).value;
 
           if (!fileInput.files.length) {
             alert("Please select a file to upload.");
             return;
           }
 
-          const dataToSend = {
-            device: device,
-            csu: csu,
-            version: version,
-            partnumber: partnumber,
-            checksum_type: checksumType
-          };
+          const dataToSend = {};
 
           const formData = new FormData();
           formData.append("file", fileInput.files[0]);

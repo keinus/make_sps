@@ -1,3 +1,4 @@
 [ollama]
-model = "qwen2.5-coder:32b-instruct-q4_K_M"
-apiBase = "http://localhost:11434"
+model = "devstral:24b" # 사용 모델명
+apiBase = "http://localhost:11434"  # api URL
+fileSize = "100KB"                  # 특정 크기 이상은 파일 전송하지 않고 메타데이터만 전송

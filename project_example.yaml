@@ -1,0 +1,14 @@
+project:
+  device: HDEV-001
+  version: 1.0.0
+  partnumber: Q2350911516
+  checksum_type: SHA256
+  csu:
+    - csu: Test1 (D-AAA-SFR-001)
+      dir: test1
+    - csu: Test2 (D-AAA-SFR-002)
+      dir: test2
+    - csu: Test3 (D-AAA-SFR-003)
+      dir: test3
+    - csu: Test4 (D-AAA-SFR-004)
+      dir: test4

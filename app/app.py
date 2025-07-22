@@ -18,7 +18,7 @@ from app.hwpx import make_sps_hwpx
 from app.util.util import create_template_zip
 
 api = FastAPI()
-api.mount("/static", StaticFiles(directory="resources"), name="static")
+api.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 def get(a, default=None):
@@ -32,7 +32,7 @@ async def get_upload_page():
     Returns:
         HTML: 업로드 페이지
     """
-    async with await anyio.open_file("resources/gui.html", "r", encoding='UTF8') as file:
+    async with await anyio.open_file("static/index.html", "r", encoding='UTF8') as file:
         contents = await file.read()
         return HTMLResponse(content=contents, status_code=200)
 
