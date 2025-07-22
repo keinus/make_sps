@@ -1,8 +1,9 @@
-import requests
 import json
 import os
 import re
 from pathlib import Path
+
+import requests
 import tomli as tomllib
 
 
@@ -14,7 +15,7 @@ class OllamaFileDescriptor:
         self.api_url = f"{self.base_url}/api/generate"
         self.is_connectable = self.check_server_connectivity()
         self.size = self._parse_file_size(config.get('fileSize'))
-    
+
     def _parse_file_size(self, s):
         match = re.match(r'(\d+)(\w+)', s)
         if not match:
@@ -22,7 +23,7 @@ class OllamaFileDescriptor:
         number, unit = match.groups()
         number = int(number)
         unit = unit.upper()
-        
+
         unit_map = {
             'B': 1,
             'KB': 1024,
@@ -30,28 +31,28 @@ class OllamaFileDescriptor:
             'GB': 1024**3,
             'TB': 1024**4
         }
-        
+
         if unit not in unit_map:
             raise ValueError(f"Unknown unit: {unit}")
-        
+
         return number * unit_map[unit]
-    
+
     def load_ollama_config(self, config_path: str = "ollama.toml") -> dict:
         config_file = Path(config_path)
-        
+
         if not config_file.exists():
             raise FileNotFoundError(f"설정 파일을 찾을 수 없습니다: {config_path}")
-        
+
         # Python 3.11+에서는 'rb' 모드로 읽기
         with open(config_file, 'rb') as f:
             config = tomllib.load(f)
-        
+
         # ollama 설정 추출
         ollama_config = config.get('ollama', {})
-        
+
         if not ollama_config:
             raise ValueError("pyproject.toml에서 ollama 설정을 찾을 수 없습니다")
-        
+
         return ollama_config
 
     def check_server_connectivity(self) -> bool:
@@ -60,7 +61,7 @@ class OllamaFileDescriptor:
             return response.status_code == 200
         except (requests.RequestException, AttributeError):
             return False
-    
+
     def read_file(self, file_path):
         try:
             file_size = os.path.getsize(file_path)
@@ -69,7 +70,7 @@ class OllamaFileDescriptor:
 
             with open(file_path, 'r', encoding='utf-8') as file:
                 return file.read()
-        except Exception | UnicodeDecodeError:
+        except UnicodeDecodeError:
             filename_with_ext = os.path.basename(file_path)
             filename, ext = os.path.splitext(filename_with_ext)
 
@@ -86,12 +87,12 @@ class OllamaFileDescriptor:
                 f"Access Time: {access_time}"
             )
             return str(result)
-    
+
     def describe_file_with_requests(self, file_path: str) -> str:
         if not self.is_connectable:
             return ""
         file_content = self.read_file(file_path)
-        
+
         prompt = f"""
 파일 내용:
 '''
@@ -106,19 +107,20 @@ class OllamaFileDescriptor:
             "prompt": prompt,
             "stream": False
         }
-        
+
         try:
             response = requests.post(self.api_url, json=payload, timeout=30)
             response.raise_for_status()
-            
+
             result = response.json()
             if len(result.get('response')) > 100:
                 return ''
             return result.get('response', '응답을 받지 못했습니다.')
-            
-        except requests.RequestException as e:
+
+        except requests.RequestException:
             return ""
-        except json.JSONDecodeError as e:
+        except json.JSONDecodeError:
             return ""
+
 
 descriptor = OllamaFileDescriptor()

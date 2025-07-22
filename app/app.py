@@ -1,31 +1,29 @@
 """entrypoint"""
 import os
 import shutil
+from typing import Any
+
 import anyio
-
-from fastapi import BackgroundTasks, Body, FastAPI, File, HTTPException, UploadFile, Form
-from app.environments.env import DEFAULT_TEMP_DIR
+from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, HTMLResponse
-from fastapi.responses import FileResponse, HTMLResponse
 
-from app.schema.enums import CHECKSUM
-from app.util import extract_zip, create_random_named_folder
-from app.parser import parser
-from app.schema.web_api import SpsProject, SpsRequest
-from app.parser import project_yaml_parser
+from app.environments.env import DEFAULT_TEMP_DIR
 from app.hwpx import make_sps_hwpx
+from app.parser import parser, project_yaml_parser
+from app.schema.web_api import SpsProject
+from app.util import create_random_named_folder, extract_zip
 from app.util.util import create_template_zip
 
 api = FastAPI()
 api.mount("/static", StaticFiles(directory="static"), name="static")
 
 
-def get(a, default=None):
+def get(a, default=None) -> Any | None:
     return a if a is not None else default
 
 @api.get("/")
-async def get_upload_page():
+async def get_upload_page() -> HTMLResponse:
     """HTML 파일 업로드 페이지 제공 함수
     업로드 페이지를 제공하는 API 엔드포인트입니다.
 
@@ -37,14 +35,9 @@ async def get_upload_page():
         return HTMLResponse(content=contents, status_code=200)
 
 
-@api.post("/uploadfile/hwpx")
+@api.post("/uploadfile")
 async def upload_file_hwpx(
     file: UploadFile = File(...),
-    device: str = Form(...),
-    csu: str = Form(...),
-    version: str = Form(...),
-    partnumber: str = Form(...),
-    checksum_type: CHECKSUM = Form(...)
 ) -> FileResponse:
     if file.filename is None:
         return FileResponse(path="", filename="default_filename")
@@ -79,14 +72,8 @@ async def upload_file_hwpx(
         sps_project: SpsProject = project_yaml_parser.parse_sps_project(project_filename)
         retval = parser.get_sps_data_csc(sps_project, directory_path)
     else:
-        device_request = SpsRequest(
-            device=get(device, "HDEV"),
-            csu=get(csu, "CSU"),
-            version=get(version, "1.0"),
-            partnumber=get(partnumber, "P"),
-            checksum_type=get(checksum_type, CHECKSUM.MD5)
-        )
-        retval = parser.get_sps_data(device_request, directory_path)
+        raise FileNotFoundError("project.yaml not found.")
+    
 
     make_sps_hwpx.make(retval, target)
     create_template_zip(target, save_as_location)
